@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
+import sklearn
 
 # load the dataset
 df = pd.read_csv('./input/yearly_temp_merged_df.csv', index_col=0)
