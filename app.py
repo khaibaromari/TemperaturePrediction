@@ -5,9 +5,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import sklearn
 import openpyxl
+import plotly.express as px
 
 # load the dataset
 df = pd.read_csv('./input/yearly_temp_merged_df.csv', index_col=0)
+df_season = pd.read_csv('./input/seasonal_data.csv',index_col=0)
 
 # rename column names
 column_names = {
@@ -30,8 +32,9 @@ pages=["👋 Introduction", "🔍 Data Exploration", "📊 Data Visualization", 
 page=st.sidebar.radio("Go to", pages)
 
 if page=="👋 Introduction":
-    st.title('👋 Introduction')
     # Content of the Introduction
+    st.header('👋 Introduction')
+    st.markdown(f"<span style='font-size:35px; color: #ff4b4b; font-weight: bold;'>World Temperature</span>", unsafe_allow_html=True)
     st.write("""
     Climate change has become one of the most pressing challenges of the 21st century, 
     profoundly impacting ecosystems, economies, and communities worldwide. As global 
@@ -105,8 +108,58 @@ elif page=="🔍 Data Exploration":
     
 elif page=="📊 Data Visualization":
     st.title('📊 Data Visualization')
-    st.dataframe(df.head(7))
+
+    st.divider()
+
+    st.subheader("Temperature Anomalies by Season")
+    season = st.selectbox("Select Season", options=df_season['Months'].unique())
+    countries = st.multiselect("Select Countries", options=df_season['Area'].unique(), default=['France'])
+    year_range = st.slider(
+        "Select Year Range", 
+        min_value=int(df_season['Year'].min()), 
+        max_value=int(df_season['Year'].max()), 
+        value=(int(df_season['Year'].min()), int(df_season['Year'].max()))
+    )
+
+    # Filter the data based on selections
+    filtered_df = df_season[
+        (df_season['Months'] == season) & 
+        (df_season['Area'].isin(countries)) & 
+        (df_season['Year'].between(year_range[0], year_range[1]))
+    ]
+
+    # Create the Plotly line plot
+    if not filtered_df.empty:
+        fig = px.line(
+            filtered_df,
+            x='Year',
+            y='Value',
+            color='Area',
+            markers=True,  # Add markers to the line
+            title=f"Temperature Anomalies: {season.capitalize()}",
+            labels={'Value': 'Temperature Anomaly (°C)', 'Area': 'Country'}
+        )
+        
+        st.plotly_chart(fig)
+    else:
+        st.warning("No data available for the selected filters.")
+
+
     
+    st.subheader('Temperature Anomaly World Map')    
+        
+    fig =  px.choropleth(
+            df,
+            locations='Area',
+            locationmode= 'country names',
+            color='Value',
+            animation_frame= 'Year',
+            color_continuous_scale='Plasma'
+        )
+        
+
+    st.plotly_chart(fig)
+
     europe = [
     "Albania", "Andorra", "Armenia", "Austria", "Azerbaijan", "Belarus", "Belgium", "Bosnia and Herzegovina",
     "Bulgaria", "Croatia", "Cyprus", "Czech Republic", "Denmark", "Estonia", "Finland", "France", "Georgia",
@@ -318,7 +371,7 @@ elif page=="📌 Conclusion":
     st.title('📌 Conclusion')
     st.subheader('After analyzing the data and developing ML models, we can conclude that:')
     st.markdown('''
-* The temperature change is positively correlated with the CO₂ emissions rate, population growth rate, methane emissions, nitrous oxide emissions, and GDP.\n
+* The temperature change is positively correlated with the CO₂ emissions rate, population, methane emissions, nitrous oxide emissions, and GDP.\n
     This means that as these factors increase, the temperature change also increases. This is because these factors contribute to the greenhouse effect, which traps heat in the atmosphere and causes the Earth to warm up.
 * Continents such as Europe, Asia, and Africa experiences signifacnt impacts from global warming.
 * The pattern of golbal warming impact may vary based on country's geographic position.
